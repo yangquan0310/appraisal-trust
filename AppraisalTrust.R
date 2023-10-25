@@ -27,28 +27,22 @@ AppraisalTrust<-R6Class(
       self$stat_trans_trust =stat_trans_trust 
       self$stat_trans_nontrust=stat_trans_nontrust
       private$last_stat_pdf=init_stat_pdf
+      private$stat_now=which(init_stat_pdf==max(init_stat_pdf))[1]
       self$rt=matrix(NA,ncol = 2,nrow = self$nter)
       self$stat=matrix(NA,ncol=3,nrow = self$nter)
-    },
-    mean_rt=function(i){
-      private$rt_now=dplyr::case_when(
-        private$stat_now==1~max(self$diffcute-i*self$study,self$model),
-        private$stat_now==2~self$show+self$Appraise,
-        private$stat_now==3~self$show+100
-      )
     },
     simulate=function(){
       for (i in 1:self$nter){
         gaibian=ifelse(i>=private$change_time,T,F)
         stat_trans=dplyr::case_when(
-          !gaibian~private$stat_trans_trust,
-          gaibian~private$stat_trans_nontrust
+          !gaibian~self$stat_trans_trust,
+          gaibian~self$stat_trans_nontrust
         )
         curr_stat_pdf=c(crossprod(private$last_stat_pdf,stat_trans))
         self$stat[i,]=curr_stat_pdf
         private$stat_now=which(curr_stat_pdf==max(curr_stat_pdf))[1]
         self$rt[i,1]=private$stat_now
-        m=max(self$mean_rt(private$study_t),self$show)
+        m=max(private$mean_rt(private$study_t,self$diffcute,self$study,self$model,self$show,self$appraise),self$show)
         self$rt[i,2]=rnorm(1,m,sd=50)
         private$last_stat_pdf=curr_stat_pdf
         private$study_t=ifelse(private$stat_now==1,private$study_t+1,private$study_t)
@@ -66,8 +60,15 @@ AppraisalTrust<-R6Class(
     change_time=NULL,
     study_t=0,
     last_stat_pdf=NULL,
-    stat_now=1,
+    stat_now=NULL,
     rt_now=NULL,
+    mean_rt=function(i,diffcute,study,model,show,Appraise){
+      private$rt_now=dplyr::case_when(
+        private$stat_now==1~max(diffcute-i*study,model),
+        private$stat_now==2~show+Appraise,
+        private$stat_now==3~show+100
+      )
+    }
   )
 )
 if (interactive()) {
